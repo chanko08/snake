@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script type='text/javascript' src="jquery-1.8.2.js"></script>
+<script type='text/javascript' src="snake.js"></script>
+<script type='text/javascript'>
+    $(document).ready(function(){
+        //get height, width and window for game
+        var canvas = $("#snake");
+        var width = canvas.width();
+        var height = canvas.height();
+        var context = canvas.get(0).getContext("2d");
+
+        //this implicitly starts the game
+        new Main(context, height, width);
+    });
+</script>
+</head>
+<body>
+<canvas id="snake" width="400" height="400"></canvas>
+</body>
+</html>
