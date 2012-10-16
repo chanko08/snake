@@ -5,12 +5,48 @@
     <script type='text/javascript' src='event.js'></script>
     <script type='text/javascript'>
         $(document).ready(function(){
-            var e = new EventHandler('canvas')
+            /*
+            function addword(e){
+                console.log("add called")
+                console.log(e.msg.button)
+                if(e.msg.button != 0){
+                    return;
+                }
+
+                console.log("add called")
+
+                var elem = document.getElementById("test");
+                elem.innerHTML = elem.innerHTML + " blah";
+
+            }
+
+            function clearwords(e){
+                console.log("clear called")
+                console.log(e.msg.button)
+                if(e.msg.button != 2){
+                    return;
+                }
+            
+                var elem = document.getElementById("test");
+                elem.innerHTML = "";
+            }
+            */
+            function keyaddword(e){
+                console.log("key add called");
+            }
+            var e = new EventHandler('canvas');
+            //e.add_callback("mousedown", addword);
+            //e.add_callback("mousedown", clearwords);
+            //console.log("added callbacks");
+            e.add_callback("keydown", keyaddword);
+
 
         })
     </script>
 </head>
 <body>
-    <canvas id='canvas' style='background-color:blue' width='400' height='400' tabindex='1'></canvas>
+    <div>
+        <canvas id='canvas' style='background-color:blue' width='400' height='400' tabindex='1'></canvas>
+    </div>
 </body>
 </html>

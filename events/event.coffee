@@ -9,45 +9,56 @@ class @EventHandler
     constructor: (canvas_id) ->
         @canvas = document.getElementById(canvas_id)
 
-        @event_queue = []
+        @callbacks = {}
+        for c in EventList
+            @callbacks[c] = []
 
 
 
         #attach the base event handlers to the canvas element
         #all the other events are interpretted through data gained by these events
-        self = this
-        @canvas.addEventListener("focus",       ((e) -> self._on_focus(e)),         false)
-        @canvas.addEventListener("blur",        ((e) -> self._on_blur(e)),          false)
-        @canvas.addEventListener("click",       ((e) -> self._on_click(e)) ,        false)
-        @canvas.addEventListener("keypress",    ((e) -> self._on_key_press(e)),     false)
-        @canvas.addEventListener("keyrelease",  ((e) -> self._on_key_release(e)),   false)
-        @canvas.addEventListener("mousedown",   ((e) -> self._on_mouse_down(e)),    false)
-        @canvas.addEventListener("mouseup",     ((e) -> self._on_mouse_up(e)),      false)
-        @canvas.addEventListener("contextmenu", ((e) -> self._on_context_menu(e)),  false)
+        @canvas.addEventListener("focus",       @_on_focus,         false)
+        @canvas.addEventListener("blur",        @_on_blur,          false)
+        @canvas.addEventListener("keydown",     @_on_key_down,      false)
+        @canvas.addEventListener("keyup",       @_on_key_up,        false)
+        @canvas.addEventListener("mousedown",   @_on_mouse_down,    false)
+        @canvas.addEventListener("mouseup",     @_on_mouse_up,      false)
+        @canvas.addEventListener("contextmenu", @_on_context_menu,  false)
+        @canvas.focus()
 
-    _on_blur: (e) ->
+    _on_blur: (e) =>
         e.preventDefault()
+        @signal_event(Events.BLUR, null)
 
-    _on_focus: (e) ->
+    _on_focus: (e) =>
         e.preventDefault()
+        @signal_event(Events.FOCUS, null)
 
-    _on_key_press: (e) ->
+    _on_key_down: (e) =>
         e.preventDefault()
+        @signal_event(Events.KEYDOWN, @_make_canvas_key_event(e))
 
-    _on_key_release: (e) ->
+    _on_key_up: (e) =>
         e.preventDefault()
+        @signal_event(Events.KEYUP, @_make_canvas_key_event(e))
 
-    _on_click: (e) ->
+    _make_canvas_key_event: (e) ->
+        keycode = e.which || e.keyCode
+        ev =
+            code:keycode
+        console.log(keycode)
+        return ev
+
+
+
+
+    _on_mouse_down: (e) =>
         e.preventDefault()
+        @signal_event(Events.MOUSEDOWN, @_make_canvas_mouse_event(e))
 
-    _on_mouse_down: (e) ->
+    _on_mouse_up: (e) =>
         e.preventDefault()
-        @signal_event("mousedown",@_make_canvas_mouse_event(e))
-
-
-    _on_mouse_up: (e) ->
-        e.preventDefault()
-        @signal_event("mouseup",@_make_canvas_mouse_event(e))
+        @signal_event(Events.MOUSEUP, @_make_canvas_mouse_event(e))
 
     _make_canvas_mouse_event: (e) ->
         rect = @canvas.getBoundingClientRect()
@@ -59,7 +70,7 @@ class @EventHandler
             y:e.clientY - rect.left - root.scrollLeft
             button:e.button
 
-        return pt
+        return ev
 
 
 
@@ -67,32 +78,236 @@ class @EventHandler
         e.preventDefault()
 
 
+    add_callback: (evname, callback) ->
+        if evname of @callbacks
+            @callbacks[evname].push(callback)
+        else
+            @callbacks[evname] = []
+            @callbacks[evname].push(callback)
+
+        console.log("callbacks",@callbacks)
+
     signal_event: (evname, evobj) ->
+        console.log("event signalled",evname)
         ev =
             name:evname
             msg :evobj
-        @event_queue.push(ev)
+        #now call all events that have asked to be signalled when this event occurs
+        if evname of @callbacks
+            c(ev) for c in @callbacks[evname]
 
-###
-# EventTypes
-# An object that enumerates the main types of events that all events are categorized as
-###
-EventTypes =
-    MOUSE:0
-    KEYBOARD:1
-    USER:2
 
-###
-# CanvasEvents
-###
-CanvasEvents =
-    KEYPRESS   :0
-    KEYRELEASE :1
-    MOUSEUP    :2
-    MOUSEDOWN  :3
-    USER:4
+Events =
+    KEYDOWN   :"keydown"
+    KEYUP     :"keyup"
+    MOUSEUP   :"mouseup"
+    MOUSEDOWN :"mousedown"
+    FOCUS     :"focus"
+    BLUR      :"blur"
 
-MouseButton =
-    LEFT   :1
-    MIDDLE :2
-    RIGHT  :3
+EventList = [Events.MOUSEDOWN, Events.MOUSEUP, Events.KEYUP,  Events.KEYDOWN]
+
+
+keyCodeToChar = 
+    8:"Backspace",
+    9:"Tab",
+    13:"Enter",
+    16:"Shift",
+    17:"Ctrl",
+    18:"Alt",
+    19:"Pause/Break",
+    20:"Caps Lock",
+    27:"Esc",
+    32:"Space",
+    33:"Page Up",
+    34:"Page Down",
+    35:"End",
+    36:"Home",
+    37:"Left",
+    38:"Up",
+    39:"Right",
+    40:"Down",
+    45:"Insert",
+    46:"Delete",
+    48:"0",
+    49:"1",
+    50:"2",
+    51:"3",
+    52:"4",
+    53:"5",
+    54:"6",
+    55:"7",
+    56:"8",
+    57:"9",
+    65:"A",
+    66:"B",
+    67:"C",
+    68:"D",
+    69:"E",
+    70:"F",
+    71:"G",
+    72:"H",
+    73:"I",
+    74:"J",
+    75:"K",
+    76:"L",
+    77:"M",
+    78:"N",
+    79:"O",
+    80:"P",
+    81:"Q",
+    82:"R",
+    83:"S",
+    84:"T",
+    85:"U",
+    86:"V",
+    87:"W",
+    88:"X",
+    89:"Y",
+    90:"Z",
+    91:"Windows",
+    93:"Right Click",
+    96:"Numpad 0",
+    97:"Numpad 1",
+    98:"Numpad 2",
+    99:"Numpad 3",
+    100:"Numpad 4",
+    101:"Numpad 5",
+    102:"Numpad 6",
+    103:"Numpad 7",
+    104:"Numpad 8",
+    105:"Numpad 9",
+    106:"Numpad *",
+    107:"Numpad +",
+    109:"Numpad -",
+    110:"Numpad .",
+    111:"Numpad /",
+    112:"F1",
+    113:"F2",
+    114:"F3",
+    115:"F4",
+    116:"F5",
+    117:"F6",
+    118:"F7",
+    119:"F8",
+    120:"F9",
+    121:"F10",
+    122:"F11",
+    123:"F12",
+    144:"Num Lock",
+    145:"Scroll Lock",
+    182:"My Computer",
+    183:"My Calculator",
+    186:";",
+    187:"=",
+    188:",",
+    189:"-",
+    190:".",
+    191:"/",
+    192:"`",
+    219:"[",
+    220:"\\",
+    221:"]",
+    222:"'"
+
+keyCharToCode = 
+    "Backspace":8,
+    "Tab":9,
+    "Enter":13,
+    "Shift":16,
+    "Ctrl":17,
+    "Alt":18,
+    "Pause/Break":19,
+    "Caps Lock":20,
+    "Esc":27,
+    "Space":32,
+    "Page Up":33,
+    "Page Down":34,
+    "End":35,
+    "Home":36,
+    "Left":37,
+    "Up":38,
+    "Right":39,
+    "Down":40,
+    "Insert":45,
+    "Delete":46,
+    "0":48,
+    "1":49,
+    "2":50,
+    "3":51,
+    "4":52,
+    "5":53,
+    "6":54,
+    "7":55,
+    "8":56,
+    "9":57,
+    "A":65,
+    "B":66,
+    "C":67,
+    "D":68,
+    "E":69,
+    "F":70,
+    "G":71,
+    "H":72,
+    "I":73,
+    "J":74,
+    "K":75,
+    "L":76,
+    "M":77,
+    "N":78,
+    "O":79,
+    "P":80,
+    "Q":81,
+    "R":82,
+    "S":83,
+    "T":84,
+    "U":85,
+    "V":86,
+    "W":87,
+    "X":88,
+    "Y":89,
+    "Z":90,
+    "Windows":91,
+    "Right Click":93,
+    "Numpad 0":96,
+    "Numpad 1":97,
+    "Numpad 2":98,
+    "Numpad 3":99,
+    "Numpad 4":100,
+    "Numpad 5":101,
+    "Numpad 6":102,
+    "Numpad 7":103,
+    "Numpad 8":104,
+    "Numpad 9":105,
+    "Numpad *":106,
+    "Numpad +":107,
+    "Numpad -":109,
+    "Numpad .":110,
+    "Numpad /":111,
+    "F1":112,
+    "F2":113,
+    "F3":114,
+    "F4":115,
+    "F5":116,
+    "F6":117,
+    "F7":118,
+    "F8":119,
+    "F9":120,
+    "F10":121,
+    "F11":122,
+    "F12":123,
+    "Num Lock":144,
+    "Scroll Lock":145,
+    "My Computer":182,
+    "My Calculator":183,
+    ";":186,
+    "=":187,
+    ",":188,
+    "-":189,
+    ".":190,
+    "/":191,
+    "`":192,
+    "[":219,
+    "\\":220,
+    "]":221,
+    "'":222
