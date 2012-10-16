@@ -41,6 +41,7 @@ class @EventHandler
         if @keys_down[key] != true
             @signal_event(Events.KEYDOWN, @_make_canvas_key_event(e))
 
+
         @keys_down[key] = true
 
     _on_key_up: (e) =>
@@ -62,7 +63,7 @@ class @EventHandler
 
         ev =
             code:keycode
-        console.log(keycode)
+            mod:mod
         return ev
 
 
