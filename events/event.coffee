@@ -13,17 +13,17 @@ class @EventHandler
         for c in EventList
             @callbacks[c] = []
 
-
+        @keys_down = {}
 
         #attach the base event handlers to the canvas element
         #all the other events are interpretted through data gained by these events
-        @canvas.addEventListener("focus",       @_on_focus,         false)
-        @canvas.addEventListener("blur",        @_on_blur,          false)
-        @canvas.addEventListener("keydown",     @_on_key_down,      false)
-        @canvas.addEventListener("keyup",       @_on_key_up,        false)
-        @canvas.addEventListener("mousedown",   @_on_mouse_down,    false)
-        @canvas.addEventListener("mouseup",     @_on_mouse_up,      false)
-        @canvas.addEventListener("contextmenu", @_on_context_menu,  false)
+        @canvas.addEventListener(Events.FOCUS,       @_on_focus,         false)
+        @canvas.addEventListener(Events.BLUR,        @_on_blur,          false)
+        @canvas.addEventListener(Events.KEYDOWN,     @_on_key_down,      false)
+        @canvas.addEventListener(Events.KEYUP,       @_on_key_up,        false)
+        @canvas.addEventListener(Events.MOUSEDOWN,   @_on_mouse_down,    false)
+        @canvas.addEventListener(Events.MOUSEUP,     @_on_mouse_up,      false)
+        @canvas.addEventListener(Events.CONTEXTMENU, @_on_context_menu,  false)
         @canvas.focus()
 
     _on_blur: (e) =>
@@ -36,14 +36,30 @@ class @EventHandler
 
     _on_key_down: (e) =>
         e.preventDefault()
-        @signal_event(Events.KEYDOWN, @_make_canvas_key_event(e))
+
+        key = e.which || e.keyCode
+        if @keys_down[key] != true
+            @signal_event(Events.KEYDOWN, @_make_canvas_key_event(e))
+
+        @keys_down[key] = true
 
     _on_key_up: (e) =>
         e.preventDefault()
         @signal_event(Events.KEYUP, @_make_canvas_key_event(e))
+        key = e.which || e.keyCode
+        @keys_down[key] = false
 
     _make_canvas_key_event: (e) ->
         keycode = e.which || e.keyCode
+        mod = 0
+
+        if e.shiftKey
+            mod = mod | Modifiers.SHIFT
+        if e.ctrlKey
+            mod = mod | Modifiers.CTRL
+        if e.altKey
+            mod = mod | Modifiers.ALT
+
         ev =
             code:keycode
         console.log(keycode)
@@ -55,6 +71,7 @@ class @EventHandler
     _on_mouse_down: (e) =>
         e.preventDefault()
         @signal_event(Events.MOUSEDOWN, @_make_canvas_mouse_event(e))
+        @canvas.focus()
 
     _on_mouse_up: (e) =>
         e.preventDefault()
@@ -98,15 +115,21 @@ class @EventHandler
 
 
 Events =
-    KEYDOWN   :"keydown"
-    KEYUP     :"keyup"
-    MOUSEUP   :"mouseup"
-    MOUSEDOWN :"mousedown"
-    FOCUS     :"focus"
-    BLUR      :"blur"
+    KEYDOWN     : "keydown"
+    KEYUP       : "keyup"
+    MOUSEUP     : "mouseup"
+    MOUSEDOWN   : "mousedown"
+    FOCUS       : "focus"
+    BLUR        : "blur"
+    CONTEXTMENU : "contextmenu"
 
-EventList = [Events.MOUSEDOWN, Events.MOUSEUP, Events.KEYUP,  Events.KEYDOWN]
+EventList = [Events.MOUSEDOWN, Events.MOUSEUP, Events.KEYUP,  Events.KEYDOWN, Events.CONTEXTMENU]
 
+
+Modifiers =
+    SHIFT :1
+    CTRL  :2
+    ALT   :4
 
 keyCodeToChar = 
     8:"Backspace",
