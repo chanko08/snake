@@ -29,7 +29,6 @@ window.animLoop = (render, element) ->
         last_frame = now
     window_loop()
 
-
 Direction =
     RIGHT :0
     LEFT  :1
@@ -59,13 +58,12 @@ Window =
     COLS:   40
     ROWS:   40
     WIDTH:  400
-    HEIGHT: 500
+    HEIGHT: 400
     FPS:    60
-    PLAY_WINDOW_RECT: [[0,100],[400,400]]
-    SCORE_RECT: [[0,0],[400,100]]
 
 
     canvas:{}
+    div:{}
 
 Cell =
     WIDTH: Math.floor(Window.WIDTH / Window.COLS)
@@ -138,6 +136,15 @@ eat_food = () ->
         snake.cells.push(front)
         snake.eaten = snake.eaten + 1
         create_food()
+        update_score()
+
+update_score = () ->
+    create_score()
+
+create_score = () ->
+    score = "Score: " + snake.eaten.toString()
+    x$('#snake_score').html(score)
+
 
 
 #sets the food's location
@@ -153,14 +160,14 @@ draw_cell =  (cell, canvas) ->
     canvas.fillStyle = Color.WHITE
     canvas.strokeStyle = Color.BLUE
     canvas.fillRect(
-        cell[0] * Cell.WIDTH  + Window.PLAY_WINDOW_RECT[0][0],
-        cell[1] * Cell.HEIGHT + Window.PLAY_WINDOW_RECT[0][1],
+        cell[0] * Cell.WIDTH
+        cell[1] * Cell.HEIGHT
         Cell.WIDTH,
         Cell.HEIGHT
     )
     canvas.strokeRect(
-        cell[0] * Cell.WIDTH  + Window.PLAY_WINDOW_RECT[0][0],
-        cell[1] * Cell.HEIGHT + Window.PLAY_WINDOW_RECT[0][1],
+        cell[0] * Cell.WIDTH
+        cell[1] * Cell.HEIGHT
         Cell.WIDTH,
         Cell.HEIGHT
     )
@@ -168,37 +175,10 @@ draw_cell =  (cell, canvas) ->
 clear_canvas = () ->
     Window.canvas.fillStyle = Color.WHITE
     Window.canvas.strokeStyle = Color.BLACK
-    console.log(Window.PLAY_WINDOW_RECT)
 
     #background for the snake window
-    Window.canvas.fillRect(
-        Window.PLAY_WINDOW_RECT[0][0],
-        Window.PLAY_WINDOW_RECT[0][1],
-        Window.PLAY_WINDOW_RECT[1][0],
-        Window.PLAY_WINDOW_RECT[1][1]
-    )
-    Window.canvas.strokeRect(
-        Window.PLAY_WINDOW_RECT[0][0],
-        Window.PLAY_WINDOW_RECT[0][1],
-        Window.PLAY_WINDOW_RECT[1][0],
-        Window.PLAY_WINDOW_RECT[1][1]
-    )
-
-    Window.canvas.fillStyle = Color.GRAY
-    #background for the score board
-    Window.canvas.fillRect(
-        Window.SCORE_RECT[0][0],
-        Window.SCORE_RECT[0][1],
-        Window.SCORE_RECT[1][0],
-        Window.SCORE_RECT[1][1]
-    )
-
-    Window.canvas.strokeRect(
-        Window.SCORE_RECT[0][0],
-        Window.SCORE_RECT[0][1],
-        Window.SCORE_RECT[1][0],
-        Window.SCORE_RECT[1][1]
-    )
+    Window.canvas.fillRect(0,0,Window.WIDTH,Window.HEIGHT)
+    Window.canvas.strokeRect(0,0,Window.WIDTH,Window.HEIGHT)
 
 keyboard_callback = (event) ->
     event.preventDefault()
@@ -221,22 +201,28 @@ run = (time_delta, now) ->
 #returns an object containing necessary snake functionality
 #also ties event listeners to the canvas, and adds a interval
 #function for drawing
-initialize = (canvas_id) ->
-    canvas = document.getElementById(canvas_id)
-    canvas.width = Window.WIDTH
-    canvas.height = Window.HEIGHT
-    canvas.addEventListener('keydown', keyboard_callback)
-    context = canvas.getContext("2d")
+initialize = (div_selector) ->
+
+    #initialize the div to be a certain size, and make it contain a canvas element
+    div = x$(div_selector)
+    console.log(div)
+    canvas_stuff = "<canvas id='snake_canvas' tabindex='1'></canvas><div id='snake_score'></div>"
+    div.html(canvas_stuff)
+
+    canvas = x$("#snake_canvas").attr('width', Window.WIDTH).attr('height', Window.HEIGHT)
+    canvas.on('keydown', keyboard_callback)
+    context = canvas.first().getContext("2d")
     Window.canvas = context
 
 
     create_snake()
     create_food()
+    create_score()
 
     window.animLoop(run)
 
 
 
 window.onload = () ->
-    initialize("snake")
+    initialize("#snake")
 

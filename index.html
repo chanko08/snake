@@ -2,9 +2,17 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<script type='text/javascript' src='xui.js'></script>
+<script type='text/javascript'>
+    var extras = {
+        first: function() { return this[0]; },
+        last:  function() { return this[this.length - 1]}
+    }
+    xui.extend(extras);
+</script>
 <script type='text/javascript' src="snake.js"></script>
 </head>
 <body>
-<canvas id="snake" width="400" height="400" style='background-color:pink;border:1px solid black' tabindex='1'></canvas>
+<div id='snake'></div>
 </body>
 </html>
