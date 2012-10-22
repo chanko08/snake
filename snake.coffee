@@ -62,8 +62,7 @@ Window =
     FPS:    60
 
 
-    canvas:{}
-    div:{}
+    context:{}
 
 Cell =
     WIDTH: Math.floor(Window.WIDTH / Window.COLS)
@@ -156,29 +155,29 @@ create_food = () ->
     if food.cell in snake.cells
         create_food()
 
-draw_cell =  (cell, canvas) ->
-    canvas.fillStyle = Color.WHITE
-    canvas.strokeStyle = Color.BLUE
-    canvas.fillRect(
+draw_cell =  (cell, context) ->
+    context.fillStyle = Color.WHITE
+    context.strokeStyle = Color.BLUE
+    context.fillRect(
         cell[0] * Cell.WIDTH
         cell[1] * Cell.HEIGHT
         Cell.WIDTH,
         Cell.HEIGHT
     )
-    canvas.strokeRect(
+    context.strokeRect(
         cell[0] * Cell.WIDTH
         cell[1] * Cell.HEIGHT
         Cell.WIDTH,
         Cell.HEIGHT
     )
 
-clear_canvas = () ->
-    Window.canvas.fillStyle = Color.WHITE
-    Window.canvas.strokeStyle = Color.BLACK
+clear_context = () ->
+    Window.context.fillStyle = Color.WHITE
+    Window.context.strokeStyle = Color.BLACK
 
     #background for the snake window
-    Window.canvas.fillRect(0,0,Window.WIDTH,Window.HEIGHT)
-    Window.canvas.strokeRect(0,0,Window.WIDTH,Window.HEIGHT)
+    Window.context.fillRect(0,0,Window.WIDTH,Window.HEIGHT)
+    Window.context.strokeRect(0,0,Window.WIDTH,Window.HEIGHT)
 
 keyboard_callback = (event) ->
     event.preventDefault()
@@ -194,9 +193,9 @@ keyboard_callback = (event) ->
 run = (time_delta, now) ->
     move_snake(time_delta, now)
     eat_food()
-    clear_canvas()
-    draw_cell(c, Window.canvas) for c in snake.cells
-    draw_cell(food.cell, Window.canvas)
+    clear_context()
+    draw_cell(c, Window.context) for c in snake.cells
+    draw_cell(food.cell, Window.context)
 
 #returns an object containing necessary snake functionality
 #also ties event listeners to the canvas, and adds a interval
@@ -212,7 +211,7 @@ initialize = (div_selector) ->
     canvas = x$("#snake_canvas").attr('width', Window.WIDTH).attr('height', Window.HEIGHT)
     canvas.on('keydown', keyboard_callback)
     context = canvas.first().getContext("2d")
-    Window.canvas = context
+    Window.context = context
 
 
     create_snake()
