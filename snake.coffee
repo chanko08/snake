@@ -204,12 +204,15 @@ initialize = (div_selector) ->
 
     #initialize the div to be a certain size, and make it contain a canvas element
     div = x$(div_selector)
-    console.log(div)
+    div.css({border:'2px solid black', width:Window.WIDTH.toString() + "px"})
+
     canvas_stuff = "<canvas id='snake_canvas' tabindex='1'></canvas><div id='snake_score'></div>"
     div.html(canvas_stuff)
 
     canvas = x$("#snake_canvas").attr('width', Window.WIDTH).attr('height', Window.HEIGHT)
     canvas.on('keydown', keyboard_callback)
+
+    #tie the context to the game
     context = canvas.first().getContext("2d")
     Window.context = context
 
