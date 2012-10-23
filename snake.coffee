@@ -76,31 +76,42 @@ snake =
     move_interval:100
     last_move:0
     eaten: 0
+    growth: 0
+    cell_bitmap:undefined
 
+#snakes length = 5 + 2 * eaten
 food =
     cell:[]
+    cell_bitmap:undefined
+
+snake_head = () ->
+    #snake.cells[snake.cells.length - 1]
+    snake.cells[0]
 
 #reset the snake's location and direction
 create_snake = () ->
     if Window.COLS > 5
-        snake.cells = ([i,0] for i in [0..5])
+        snake.cells = ([i,0] for i in [5..0])
     else
         snake.cells = []
+
 
     snake.direction = Direction.RIGHT
     snake.last_move = +new Date()
     snake.reset = false
     snake.eaten = 0
+    snake.growth = 0
 
 move_snake = (time_delta, now) ->
     if snake.reset
-        create_snake()
+        game_reset()
         return
 
     if (now - snake.last_move) < snake.move_interval
         return
 
-    front = snake.cells[snake.cells.length - 1]
+    #front = snake.cells[snake.cells.length - 1]
+    front = snake_head()
 
     if snake.direction == Direction.RIGHT
         front = [front[0] + 1, front[1]]
@@ -110,9 +121,13 @@ move_snake = (time_delta, now) ->
         front = [front[0], front[1] - 1]
     else if snake.direction == Direction.DOWN
         front = [front[0], front[1] + 1]
-
-    snake.cells.shift()
-    snake.cells.push(front)
+    
+    if not snake.growth 
+        snake.cells.pop()
+    else
+        snake.growth = snake.growth - 1
+        console.log("increasing length to ", snake.cells.length + snake.growth, "currently at", snake.cells.length)
+    snake.cells.unshift(front)
     snake.last_move = now
 
     if front[0] >= Window.COLS or front[0] < 0 or front[1] >= Window.ROWS or front[1] < 0
@@ -120,20 +135,27 @@ move_snake = (time_delta, now) ->
 
     snake.reset = snake.reset or snake_hits_self()
 
+game_reset = () ->
+    create_snake()
+    create_food()
+    create_score()
 
 snake_hits_self = () ->
-    front = snake.cells[snake.cells.length - 1]
-    for c in snake.cells[0..(snake.cells.length - 2)]
+    front = snake_head()
+    collide_count = 0
+    for c in snake.cells
         if front[0] == c[0] and front[1] == c[1]
-            return true
+            collide_count = collide_count + 1
+            if 1 < collide_count then return true
     return false
 
 eat_food = () ->
-    front = snake.cells[snake.cells.length - 1]
+    front = snake_head() 
 
     if front[0] == food.cell[0] and front[1] == food.cell[1]
-        snake.cells.push(front)
         snake.eaten = snake.eaten + 1
+        snake.growth = snake.eaten
+        #snake.cells.push(front) for i in [0..snake.eaten]
         create_food()
         update_score()
 
@@ -194,8 +216,11 @@ run = (time_delta, now) ->
     move_snake(time_delta, now)
     eat_food()
     clear_context()
-    draw_cell(c, Window.context) for c in snake.cells
-    draw_cell(food.cell, Window.context)
+    #draw_cell(c, Window.context) for c in snake.cells
+    Window.context.drawImage(snake.cell_bitmap, c[0] * Cell.WIDTH, c[1] * Cell.HEIGHT) for c in snake.cells
+    c = food.cell
+    Window.context.drawImage(food.cell_bitmap, c[0] * Cell.WIDTH, c[1] * Cell.HEIGHT)
+    #draw_cell(food.cell, Window.context)
 
 #returns an object containing necessary snake functionality
 #also ties event listeners to the canvas, and adds a interval
@@ -210,21 +235,37 @@ initialize = (div_selector) ->
     div.html(canvas_stuff)
 
     canvas = x$("#snake_canvas").attr('width', Window.WIDTH).attr('height', Window.HEIGHT)
-    canvas.on('keydown', keyboard_callback)
+    x$(document).on('keydown', keyboard_callback)
 
     #tie the context to the game
     context = canvas.first().getContext("2d")
+    canvas.first().focus()
     Window.context = context
 
 
     create_snake()
+    snake.cell_bitmap = document.createElement('canvas')
+    snake.cell_bitmap.width = Cell.WIDTH
+    snake.cell_bitmap.height = Cell.HEIGHT
+    c = snake.cell_bitmap.getContext('2d')
+    draw_cell([0,0], c)
+
+    
+
+
     create_food()
+    food.cell_bitmap = document.createElement('canvas')
+    food.cell_bitmap.width = Cell.WIDTH
+    food.cell_bitmap.height = Cell.HEIGHT
+    c = food.cell_bitmap.getContext('2d')
+    draw_cell([0,0], c)
     create_score()
+
+    console.log(food.cell_bitmap)
 
     window.animLoop(run)
 
 
 
-window.onload = () ->
-    initialize("#snake")
+x$.ready(() ->initialize ("#snake"))
 
