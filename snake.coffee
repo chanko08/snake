@@ -29,6 +29,10 @@ window.animLoop = (render, element) ->
         last_frame = now
     window_loop()
 
+#BEGIN GAME CODE###############################################################
+
+#Direction enumeration for possible directions, as well as some nice methods
+#for use with directions
 Direction =
     RIGHT :0
     LEFT  :1
@@ -40,12 +44,12 @@ Direction =
             return Direction.LEFT
         else if dir == Direction.LEFT
             return Direction.RIGHT
-        else if dir == Direction.TOP
+        else if dir == Direction.UP
             return Direction.DOWN
         else if dir == Direction.DOWN
             return Direction.UP
 
-
+#Simple enumeration of colors that are used in the game
 Color =
     WHITE:"#ffffff"
     BLACK:"#000000"
@@ -53,7 +57,11 @@ Color =
     BLUE :"#0000ff"
     GRAY:"#dddddd"
 
-
+#The window object contains the necessary information regarding the main
+#canvas size, the number of rows and cols of cells there are,
+#as well as the canvas context so that things may be drawn to it.
+#There is also a reference to the current state of the game that is used for
+#update calls for the game
 Window =
     COLS:   40
     ROWS:   40
@@ -62,120 +70,199 @@ Window =
     FPS:    60
 
 
+    div:{}
     context:{}
 
+#The cell object contains information regarding a cells dimensions
 Cell =
     WIDTH: Math.floor(Window.WIDTH / Window.COLS)
     HEIGHT: Math.floor(Window.HEIGHT / Window.ROWS)
 
-snake =
-    reset: false
-    cells:[]
-    direction:1
-    previous_direction:undefined
-    move_interval:100
-    last_move:0
-    eaten: 0
-    growth: 0
-    cell_bitmap:undefined
+GameScreen =
+    snake:
+        reset: false
+        cells: []
+        direction: Direction.RIGHT
+        move_interval: 100
+        last_move: 0
+        eaten: 0
+        growth: 0
+        bitmap: undefined
 
-#snakes length = 5 + 2 * eaten
-food =
-    cell:[]
-    cell_bitmap:undefined
+        #returns the cell the snake's head is located
+        #before this used to vary so this was a necessary abstraction
+        head: -> this.cells[0]
 
-snake_head = () ->
-    #snake.cells[snake.cells.length - 1]
-    snake.cells[0]
+    food :
+        cell: []
+        bitmap: undefined
 
-#reset the snake's location and direction
-create_snake = () ->
-    if Window.COLS > 5
-        snake.cells = ([i,0] for i in [5..0])
-    else
-        snake.cells = []
+    #--PUBLIC METHODS--#
+    #loads necessary images for game screen, initializes/resets entities
+    initialize: ->
+        #init snake entity, include loading of its canvas
+        this._init_snake()
+        this.snake.bitmap = document.createElement('canvas')
+        this.snake.bitmap.width = Cell.WIDTH
+        this.snake.bitmap.height = Cell.HEIGHT
+        c = this.snake.bitmap.getContext('2d')
+        draw_cell([0,0], c)
 
+        #init food entity, include loading of its canvas
+        this._init_food()
+        this.food.bitmap = document.createElement('canvas')
+        this.food.bitmap.width = Cell.WIDTH
+        this.food.bitmap.height = Cell.HEIGHT
+        c = this.food.bitmap.getContext('2d')
+        draw_cell([0,0], c)
 
-    snake.direction = Direction.RIGHT
-    snake.last_move = +new Date()
-    snake.reset = false
-    snake.eaten = 0
-    snake.growth = 0
+        #create the div that holds the score for the game
+        Window.div.html('bottom', "<div id='snake_score'></div>")
+        this._update_score()
 
-move_snake = (time_delta, now) ->
-    if snake.reset
-        game_reset()
-        return
+    #does an update and draw pass for the GameScreen
+    run: (time_delta, now) ->
+        this.update(time_delta, now)
+        clear_context()
+        this.draw()
 
-    if (now - snake.last_move) < snake.move_interval
-        return
+    #draws the entities of the game screen
+    draw: ->
+        Window.context.drawImage(this.snake.bitmap, c[0] * Cell.WIDTH, c[1] * Cell.HEIGHT) for c in this.snake.cells
+        c = this.food.cell
+        Window.context.drawImage(this.food.bitmap, c[0] * Cell.WIDTH, c[1] * Cell.HEIGHT)
 
-    #front = snake.cells[snake.cells.length - 1]
-    front = snake_head()
+    #updates the entities of the game screen
+    update: (time_delta, now) ->
+        this._move_snake(time_delta, now)
+        this._eat_food()
 
-    if snake.direction == Direction.RIGHT
-        front = [front[0] + 1, front[1]]
-    else if snake.direction == Direction.LEFT
-        front = [front[0] - 1, front[1]]
-    else if snake.direction == Direction.UP
-        front = [front[0], front[1] - 1]
-    else if snake.direction == Direction.DOWN
-        front = [front[0], front[1] + 1]
-    
-    if not snake.growth 
-        snake.cells.pop()
-    else
-        snake.growth = snake.growth - 1
-        console.log("increasing length to ", snake.cells.length + snake.growth, "currently at", snake.cells.length)
-    snake.cells.unshift(front)
-    snake.last_move = now
+    #makes the snake react to certain keypresses to direct it.
+    keyboard_callback: (event) ->
+        s = this.snake
+        if event.keyCode == 37 and Direction.opposite(s.direction) != Direction.LEFT
+            s.direction = Direction.LEFT
+        else if event.keyCode == 38 and Direction.opposite(s.direction) != Direction.UP
+            s.direction = Direction.UP
+        else if event.keyCode == 39 and Direction.opposite(s.direction) != Direction.RIGHT
+            s.direction = Direction.RIGHT
+        else if event.keyCode == 40 and Direction.opposite(s.direction) != Direction.DOWN
+            s.direction = Direction.DOWN
 
-    if front[0] >= Window.COLS or front[0] < 0 or front[1] >= Window.ROWS or front[1] < 0
-        snake.reset = true
+    #---PRIVATE METHODS---#
+    #initializes/resets the food entity
+    _init_food: ->
+        this.food.cell = [
+            Math.floor(Math.random() * Window.COLS),
+            Math.floor(Math.random() * Window.ROWS)
+        ]
+        if this.food.cell in this.snake.cells
+            this._init_food()
 
-    snake.reset = snake.reset or snake_hits_self()
-
-game_reset = () ->
-    create_snake()
-    create_food()
-    create_score()
-
-snake_hits_self = () ->
-    front = snake_head()
-    collide_count = 0
-    for c in snake.cells
-        if front[0] == c[0] and front[1] == c[1]
-            collide_count = collide_count + 1
-            if 1 < collide_count then return true
-    return false
-
-eat_food = () ->
-    front = snake_head() 
-
-    if front[0] == food.cell[0] and front[1] == food.cell[1]
-        snake.eaten = snake.eaten + 1
-        snake.growth = snake.eaten
-        #snake.cells.push(front) for i in [0..snake.eaten]
-        create_food()
-        update_score()
-
-update_score = () ->
-    create_score()
-
-create_score = () ->
-    score = "Score: " + snake.eaten.toString()
-    x$('#snake_score').html(score)
+    #initializes/resets the snake entity
+    _init_snake: ->
+        if Window.COLS > 5
+            this.snake.cells = ([i,0] for i in [5..0])
+        else
+            this.snake.cells = []
 
 
+        this.snake.direction = Direction.RIGHT
+        this.snake.last_move = +new Date()
+        this.snake.reset = false
+        this.snake.eaten = 0
+        this.snake.growth = 0
 
-#sets the food's location
-create_food = () ->
-    food.cell = [
-        Math.floor(Math.random() * Window.COLS),
-        Math.floor(Math.random() * Window.ROWS)
-    ]
-    if food.cell in snake.cells
-        create_food()
+    #updates the score that is displayed.
+    _update_score: ->
+        score = "Score: " + this.snake.eaten.toString()
+        x$('#snake_score').html(score)
+
+    #updates movements of the snake
+    _move_snake: (time_delta, now) ->
+        if this.snake.reset
+            this._reset_entities()
+            return
+
+        if (now - this.snake.last_move) < this.snake.move_interval
+            return
+
+        #front = snake.cells[snake.cells.length - 1]
+        front = this.snake.head()
+
+        if this.snake.direction == Direction.RIGHT
+            front = [front[0] + 1, front[1]]
+        else if this.snake.direction == Direction.LEFT
+            front = [front[0] - 1, front[1]]
+        else if this.snake.direction == Direction.UP
+            front = [front[0], front[1] - 1]
+        else if this.snake.direction == Direction.DOWN
+            front = [front[0], front[1] + 1]
+
+        if not this.snake.growth
+            this.snake.cells.pop()
+        else
+            this.snake.growth = this.snake.growth - 1
+
+        this.snake.cells.unshift(front)
+        this.snake.last_move = now
+
+        if front[0] >= Window.COLS or front[0] < 0 or front[1] >= Window.ROWS or front[1] < 0
+            this.snake.reset = true
+
+        this.snake.reset = this.snake.reset or this._snake_hits_self()
+
+    #a check method for the snake hitting its own body
+    _snake_hits_self: ->
+        front = this.snake.head()
+        collide_count = 0
+        for c in this.snake.cells
+            if front[0] == c[0] and front[1] == c[1]
+                collide_count = collide_count + 1
+                if 1 < collide_count then return true
+        return false
+
+    #reset method for starting a game over
+    _reset_entities: ->
+        this._init_snake()
+        this._init_food()
+        this._update_score()
+
+    #an update method for handling when a piece of food is eaten
+    _eat_food: ->
+        front = this.snake.head()
+        if front[0] == this.food.cell[0] and front[1] == this.food.cell[1]
+            this.snake.eaten = this.snake.eaten + 1
+            this.snake.growth = this.snake.eaten
+            this._init_food()
+            this._update_score()
+
+TitleScreen =
+    title_bitmap: undefined
+
+    initialize: ->
+        console.log('init')
+        this.title_bitmap = document.createElement('canvas')
+        this.title_bitmap.width = Window.WIDTH
+        this.title_bitmap.height = Window.HEIGHT
+        c = this.title_bitmap.getContext('2d')
+        c.textBaseLine = 'bottom'
+        c.font = "12px Sans-Serif"
+        c.fillStyle = "blue"
+        c.fillText("Hello", 0, 12)
+
+
+
+    run: (time_delta, now) ->
+        this.update(time_delta, now)
+        this.draw()
+
+    update: (time_delta, now) -> return null
+    draw: ->
+        clear_context()
+        Window.context.drawImage(this.title_bitmap, 0, 0)
+
+    keyboard_callback: (event) -> null
 
 draw_cell =  (cell, context) ->
     context.fillStyle = Color.WHITE
@@ -203,35 +290,22 @@ clear_context = () ->
 
 keyboard_callback = (event) ->
     event.preventDefault()
-    if event.keyCode == 37 and Direction.opposite(snake.direction) != Direction.LEFT
-        snake.direction = Direction.LEFT
-    else if event.keyCode == 38 and Direction.opposite(snake.direction) != Direction.UP
-        snake.direction = Direction.UP
-    else if event.keyCode == 39 and Direction.opposite(snake.direction) != Direction.RIGHT
-        snake.direction = Direction.RIGHT
-    else if event.keyCode == 40 and Direction.opposite(snake.direction) != Direction.DOWN
-        snake.direction = Direction.DOWN
+    if Window.screen.keyboard_callback?
+        Window.screen.keyboard_callback(event)
 
 run = (time_delta, now) ->
-    move_snake(time_delta, now)
-    eat_food()
-    clear_context()
-    #draw_cell(c, Window.context) for c in snake.cells
-    Window.context.drawImage(snake.cell_bitmap, c[0] * Cell.WIDTH, c[1] * Cell.HEIGHT) for c in snake.cells
-    c = food.cell
-    Window.context.drawImage(food.cell_bitmap, c[0] * Cell.WIDTH, c[1] * Cell.HEIGHT)
-    #draw_cell(food.cell, Window.context)
+    Window.screen.run(time_delta, now)
+
 
 #returns an object containing necessary snake functionality
 #also ties event listeners to the canvas, and adds a interval
 #function for drawing
 initialize = (div_selector) ->
-
     #initialize the div to be a certain size, and make it contain a canvas element
     div = x$(div_selector)
     div.css({border:'2px solid black', width:Window.WIDTH.toString() + "px"})
 
-    canvas_stuff = "<canvas id='snake_canvas' tabindex='1'></canvas><div id='snake_score'></div>"
+    canvas_stuff = "<canvas id='snake_canvas' tabindex='1'></canvas>"
     div.html(canvas_stuff)
 
     canvas = x$("#snake_canvas").attr('width', Window.WIDTH).attr('height', Window.HEIGHT)
@@ -241,31 +315,15 @@ initialize = (div_selector) ->
     context = canvas.first().getContext("2d")
     canvas.first().focus()
     Window.context = context
+    Window.div = div
 
-
-    create_snake()
-    snake.cell_bitmap = document.createElement('canvas')
-    snake.cell_bitmap.width = Cell.WIDTH
-    snake.cell_bitmap.height = Cell.HEIGHT
-    c = snake.cell_bitmap.getContext('2d')
-    draw_cell([0,0], c)
-
-    
-
-
-    create_food()
-    food.cell_bitmap = document.createElement('canvas')
-    food.cell_bitmap.width = Cell.WIDTH
-    food.cell_bitmap.height = Cell.HEIGHT
-    c = food.cell_bitmap.getContext('2d')
-    draw_cell([0,0], c)
-    create_score()
-
-    console.log(food.cell_bitmap)
+    TitleScreen.initialize()
+    GameScreen.initialize()
+    #Window.screen = GameScreen
+    Window.screen = TitleScreen
 
     window.animLoop(run)
 
 
-
-x$.ready(() ->initialize ("#snake"))
+x$.ready(() -> initialize("#snake"))
 
