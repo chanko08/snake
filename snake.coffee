@@ -239,17 +239,36 @@ GameScreen =
 
 TitleScreen =
     title_bitmap: undefined
+    play_button:
+        pos:[]
+        bitmap: undefined
 
     initialize: ->
         console.log('init')
+
+        #the title bitmap
         this.title_bitmap = document.createElement('canvas')
         this.title_bitmap.width = Window.WIDTH
-        this.title_bitmap.height = Window.HEIGHT
+        this.title_bitmap.height = Window.HEIGHT / 4
         c = this.title_bitmap.getContext('2d')
-        c.textBaseLine = 'bottom'
-        c.font = "12px Sans-Serif"
+        c.textAlign = "center"
+        c.font = (Window.HEIGHT / 4).toString() + "px Sans-Serif"
         c.fillStyle = "blue"
-        c.fillText("Hello", 0, 12)
+        c.fillText("Snake", Window.WIDTH / 2,  Window.HEIGHT / 4)
+
+        #play button bitmap
+        bitmap = document.createElement('canvas')
+        bitmap.width = Window.WIDTH / 3
+        bitmap.height = Window.HEIGHT / 8
+        c = bitmap.getContext('2d')
+        c.textAlign = 'center'
+        c.font = (Window.HEIGHT / 8).toString() + "pt Sans-Serif"
+        c.fillText("Play", Window.WIDTH / 6, Window.HEIGHT / 8)
+        this.play_button.bitmap = bitmap
+        this.play_button.pos = [Window.WIDTH / 3, 2 * Window.HEIGHT / 4]
+
+        
+
 
 
 
@@ -261,6 +280,8 @@ TitleScreen =
     draw: ->
         clear_context()
         Window.context.drawImage(this.title_bitmap, 0, 0)
+        c = this.play_button.pos
+        Window.context.drawImage(this.play_button.bitmap, c[0], c[1] )
 
     keyboard_callback: (event) -> null
 
@@ -321,7 +342,6 @@ initialize = (div_selector) ->
     GameScreen.initialize()
     #Window.screen = GameScreen
     Window.screen = TitleScreen
-
     window.animLoop(run)
 
 
