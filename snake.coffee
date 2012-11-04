@@ -72,6 +72,7 @@ Window =
 
     div:{}
     context:{}
+    screen:{}
 
 #The cell object contains information regarding a cells dimensions
 Cell =
@@ -249,7 +250,7 @@ TitleScreen =
         #the title bitmap
         this.title_bitmap = document.createElement('canvas')
         this.title_bitmap.width = Window.WIDTH
-        this.title_bitmap.height = Window.HEIGHT / 4
+        this.title_bitmap.height = Window.HEIGHT / 4 + 10
         c = this.title_bitmap.getContext('2d')
         c.textAlign = "center"
         c.font = (Window.HEIGHT / 4).toString() + "px Sans-Serif"
@@ -258,32 +259,31 @@ TitleScreen =
 
         #play button bitmap
         bitmap = document.createElement('canvas')
-        bitmap.width = Window.WIDTH / 3
-        bitmap.height = Window.HEIGHT / 8
+        bitmap.width = Window.WIDTH
+        bitmap.height = Window.HEIGHT / 6
         c = bitmap.getContext('2d')
         c.textAlign = 'center'
-        c.font = (Window.HEIGHT / 8).toString() + "pt Sans-Serif"
-        c.fillText("Play", Window.WIDTH / 6, Window.HEIGHT / 8)
+        c.font = (Window.HEIGHT / 12).toString() + "px Sans-Serif"
+        c.fillText("Press Space To Play", Window.WIDTH/2,Window.HEIGHT / 8)
         this.play_button.bitmap = bitmap
-        this.play_button.pos = [Window.WIDTH / 3, 2 * Window.HEIGHT / 4]
-
-        
-
-
-
+        this.play_button.pos = [0, 2 * Window.HEIGHT / 4]
 
     run: (time_delta, now) ->
         this.update(time_delta, now)
         this.draw()
 
     update: (time_delta, now) -> return null
+
     draw: ->
         clear_context()
         Window.context.drawImage(this.title_bitmap, 0, 0)
         c = this.play_button.pos
         Window.context.drawImage(this.play_button.bitmap, c[0], c[1] )
 
-    keyboard_callback: (event) -> null
+    keyboard_callback: (event) ->
+        console.log(event.keyCode)
+        if event.keyCode == 32
+            Window.screen = GameScreen
 
 draw_cell =  (cell, context) ->
     context.fillStyle = Color.WHITE
